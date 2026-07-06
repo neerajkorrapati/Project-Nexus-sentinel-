@@ -1,37 +1,43 @@
-import re
-
 from models.invoice import Invoice
+import re
 
 
 class ExtractionEngine:
 
-    def extract(self, raw_text: str):
+    def extract(self, document):
+
+        raw_text = document.raw_text
 
         invoice = Invoice()
 
-        vendor_match = re.search(r"^(.*)", raw_text)
-        invoice_match = re.search(r"Invoice Number:\s*(.*)", raw_text)
-        date_match = re.search(r"Invoice Date:\s*(.*)", raw_text)
-        subtotal_match = re.search(r"Subtotal\s+([\d.]+)", raw_text)
-        gst_match = re.search(r"GST.*?([\d.]+)", raw_text)
-        total_match = re.search(r"Grand Total\s+([\d.]+)", raw_text)
+        lines = raw_text.split("\n")
 
-        if vendor_match:
-            invoice.vendor = vendor_match.group(1).strip()
+        for line in lines:
 
-        if invoice_match:
-            invoice.invoice_number = invoice_match.group(1).strip()
+            line = line.strip()
 
-        if date_match:
-            invoice.invoice_date = date_match.group(1).strip()
+            if invoice.vendor == "" and line:
+                invoice.vendor = line
 
-        if subtotal_match:
-            invoice.subtotal = float(subtotal_match.group(1))
+            if line.startswith("Invoice Number"):
+                invoice.invoice_number = line.split(":")[1].strip()
 
-        if gst_match:
-            invoice.gst = float(gst_match.group(1))
+            if line.startswith("Invoice Date"):
+                invoice.invoice_date = line.split(":")[1].strip()
 
-        if total_match:
-            invoice.grand_total = float(total_match.group(1))
+            if line.startswith("Subtotal"):
+                value = re.findall(r"[\d.]+", line)
+                if value:
+                    invoice.subtotal = float(value[-1])
+
+            if line.startswith("GST ("):
+                value = re.findall(r"[\d.]+", line)
+                if value:
+                    invoice.gst = float(value[-1])
+
+            if line.startswith("Grand Total"):
+                value = re.findall(r"[\d.]+", line)
+                if value:
+                    invoice.grand_total = float(value[-1])
 
         return invoice

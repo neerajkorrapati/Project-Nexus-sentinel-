@@ -32,11 +32,13 @@ class InvoicePipeline:
 
         print("\n========== RAW TEXT ==========\n")
 
-        raw_text = self.document_engine.process(file_location)
+        document = self.document_engine.process(file_location)
 
-        print(raw_text)
+        print("\n========== DOCUMENT ==========\n")
 
-        invoice = self.extraction_engine.extract(raw_text)
+        print(document)
+
+        invoice = self.extraction_engine.extract(document)
 
         validation = self.validation_engine.validate(invoice)
 
