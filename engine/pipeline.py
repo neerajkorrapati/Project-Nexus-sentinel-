@@ -20,6 +20,8 @@ class InvoicePipeline:
 
     async def run(self, uploaded_file):
 
+        os.makedirs("uploads", exist_ok=True)
+
         file_location = os.path.join(
             "uploads",
             uploaded_file.filename
@@ -28,7 +30,11 @@ class InvoicePipeline:
         with open(file_location, "wb") as f:
             f.write(await uploaded_file.read())
 
+        print("\n========== RAW TEXT ==========\n")
+
         raw_text = self.document_engine.process(file_location)
+
+        print(raw_text)
 
         invoice = self.extraction_engine.extract(raw_text)
 

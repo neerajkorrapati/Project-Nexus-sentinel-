@@ -2,18 +2,32 @@ class ValidationEngine:
 
     def validate(self, invoice):
 
-        """
-        Validate extracted invoice.
+        errors = []
 
-        Returns validation result.
-        """
+        if invoice.vendor == "":
+            errors.append("Vendor missing")
 
-        result = {
+        if invoice.invoice_number == "":
+            errors.append("Invoice Number missing")
 
-            "passed": True,
+        if invoice.subtotal == 0:
+            errors.append("Subtotal missing")
 
-            "errors": []
+        if invoice.gst == 0:
+            errors.append("GST missing")
+
+        if invoice.grand_total == 0:
+            errors.append("Grand Total missing")
+
+        expected = invoice.subtotal + invoice.gst
+
+        if abs(expected - invoice.grand_total) > 0.01:
+            errors.append("Total calculation incorrect")
+
+        return {
+
+            "passed": len(errors) == 0,
+
+            "errors": errors
 
         }
-
-        return result

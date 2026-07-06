@@ -1,15 +1,20 @@
+import pdfplumber
+
+
 class DocumentEngine:
 
     def process(self, file_path: str):
 
-        """
-        Reads the PDF.
+        text = ""
 
-        Converts it into raw text.
+        with pdfplumber.open(file_path) as pdf:
 
-        Returns raw text.
-        """
+            for page in pdf.pages:
 
-        raw_text = ""
+                page_text = page.extract_text()
 
-        return raw_text
+                if page_text:
+
+                    text += page_text + "\n"
+
+        return text
