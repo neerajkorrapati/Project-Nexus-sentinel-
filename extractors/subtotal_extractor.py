@@ -3,7 +3,7 @@
 
 Invoice Agent V4
 
-GST Extractor
+Subtotal Extractor
 
 ===========================================================
 """
@@ -11,7 +11,7 @@ GST Extractor
 from extractors.base_extractor import BaseExtractor
 
 
-class GSTExtractor(BaseExtractor):
+class SubtotalExtractor(BaseExtractor):
 
     def __init__(self):
 
@@ -21,13 +21,13 @@ class GSTExtractor(BaseExtractor):
 
         for token in tokens:
 
-            if token.label == "gst":
+            if token.label == "subtotal":
                 
                 amount = self.utils.extract_number(token.value)
                 
                 if amount is not None:
                     
-                    self.debug("GST", amount)
+                    self.debug("Subtotal", amount)
                     
                     return amount
 

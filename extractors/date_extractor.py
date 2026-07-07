@@ -1,21 +1,19 @@
 """
 ===========================================================
 
-Invoice Agent V3.5
+Invoice Agent V4
 
-Invoice Number Extractor
+Date Extractor
 
 Works on DocumentTokens
 
 ===========================================================
 """
 
-import re
-
 from extractors.base_extractor import BaseExtractor
 
 
-class InvoiceNumberExtractor(BaseExtractor):
+class DateExtractor(BaseExtractor):
 
     def __init__(self):
 
@@ -25,44 +23,34 @@ class InvoiceNumberExtractor(BaseExtractor):
 
         # ------------------------------------
         # Strategy 1
-        # Exact invoice_number token
+        # Exact invoice_date token
         # ------------------------------------
 
         for token in tokens:
 
-            if token.label == "invoice_number":
+            if token.label == "invoice_date":
+                
+                # Use utils to clean/format the date if possible
+                extracted_date = self.utils.extract_date(token.value)
+                final_val = extracted_date if extracted_date else token.value
 
-                self.debug("Invoice Number", token.value)
+                self.debug("Invoice Date", final_val)
 
-                return token.value
+                return final_val
 
         # ------------------------------------
         # Strategy 2
-        # Regex fallback
+        # Regex fallback on all tokens
         # ------------------------------------
 
-        patterns = [
-
-            r"[A-Za-z]{2,}[-/]\d+",
-
-            r"\d{4}-\d{2}/\d+",
-
-            r"[A-Za-z0-9/-]{6,}"
-
-        ]
-
         for token in tokens:
-
-            for pattern in patterns:
-
-                match = re.search(pattern, token.value)
-
-                if match:
-
-                    value = match.group()
-
-                    self.debug("Invoice Number (Regex)", value)
-
-                    return value
+            
+            fallback_date = self.utils.extract_date(token.value)
+            
+            if fallback_date:
+                
+                self.debug("Invoice Date (Fallback)", fallback_date)
+                
+                return fallback_date
 
         return ""

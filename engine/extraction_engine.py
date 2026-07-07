@@ -1,7 +1,7 @@
 """
 ===========================================================
 
-Invoice Agent V3.5
+Invoice Agent V4
 
 Extraction Engine
 
@@ -18,6 +18,9 @@ from parser.document_parser import DocumentParser
 from extractors.vendor_extractor import VendorExtractor
 from extractors.invoice_number_extractor import InvoiceNumberExtractor
 from extractors.date_extractor import DateExtractor
+from extractors.subtotal_extractor import SubtotalExtractor
+from extractors.gst_extractor import GSTExtractor
+from extractors.grand_total_extractor import GrandTotalExtractor
 
 
 class ExtractionEngine:
@@ -33,6 +36,12 @@ class ExtractionEngine:
         self.invoice_number = InvoiceNumberExtractor()
 
         self.date = DateExtractor()
+        
+        self.subtotal = SubtotalExtractor()
+        
+        self.gst = GSTExtractor()
+        
+        self.grand_total = GrandTotalExtractor()
 
     def extract(self, document):
 
@@ -65,5 +74,11 @@ class ExtractionEngine:
         invoice.invoice_number = self.invoice_number.extract(tokens)
 
         invoice.invoice_date = self.date.extract(tokens)
+        
+        invoice.subtotal = self.subtotal.extract(tokens)
+        
+        invoice.gst = self.gst.extract(tokens)
+        
+        invoice.grand_total = self.grand_total.extract(tokens)
 
         return invoice

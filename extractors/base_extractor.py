@@ -1,6 +1,6 @@
 """
 ===========================================================
-Invoice Agent V3
+Invoice Agent V4
 
 Base Extractor
 
@@ -22,10 +22,11 @@ class BaseExtractor(ABC):
         self.utils = ExtractorUtils()
 
     @abstractmethod
-    def extract(self, lines):
+    def extract(self, tokens):
         """
-        Every extractor must implement this.
-
+        Every V4 extractor must strictly implement this.
+        It consumes DocumentTokens instead of raw strings.
+        
         Returns:
             extracted value
         """
