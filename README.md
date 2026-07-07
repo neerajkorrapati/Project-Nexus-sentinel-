@@ -28,9 +28,15 @@ V3.5 (Current)
 ✔ OCR Normalizer
 
 ✔ Parser Utilities
+
 ✔ Document Parser
+
 ✔ Document Tokens
+
 ✔ Base Extractor
+
 ✔ Vendor Extractor
+
 ✔ Invoice Number Extractor
+
 ✔ Date Extractor
