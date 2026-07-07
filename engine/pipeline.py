@@ -36,7 +36,19 @@ class InvoicePipeline:
 
         print("\n========== DOCUMENT ==========\n")
 
-        print(document)
+        print("\n========================")
+        print("DOCUMENT")
+        print("========================")
+
+        print("Source :", document.source)
+        print("Pages  :", document.page_count)
+        print("Confidence :", document.confidence)
+
+        print("\n========================")
+        print("RAW TEXT")
+        print("========================")
+
+        print(document.raw_text)
 
         invoice = self.extraction_engine.extract(document)
 

@@ -1,20 +1,14 @@
-"""
-Global Configuration
+import os
 
-Later we will add:
-
-- Tesseract Path
-- Poppler Path
-- Upload Limits
-- OCR Settings
-"""
-
-USE_OCR = False
-
-TESSERACT_PATH = ""
-
-POPPLER_PATH = ""
+# ---------- PATHS ----------
 
 UPLOAD_FOLDER = "uploads"
-
 OUTPUT_FOLDER = "outputs"
+
+# ---------- OCR ----------
+
+USE_OCR = True
+
+TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+POPPLER_PATH = r"C:\poppler\Library\bin"
