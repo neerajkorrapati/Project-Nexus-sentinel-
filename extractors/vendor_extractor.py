@@ -1,12 +1,12 @@
 """
 ===========================================================
-Invoice Agent V3
+
+Invoice Agent V3.5
 
 Vendor Extractor
 
-Responsible only for extracting the vendor/company name.
+Works on DocumentTokens instead of raw OCR lines.
 
-Author : Project Nexus
 ===========================================================
 """
 
@@ -15,87 +15,54 @@ from extractors.base_extractor import BaseExtractor
 
 class VendorExtractor(BaseExtractor):
 
-    def __init__(self):
+    def extract(self, tokens):
 
-        super().__init__()
-
-    def extract(self, lines):
-
-        """
-        Strategy
-
-        1. Look for explicit vendor aliases
-        2. Return value after ':'
-        3. Otherwise use first meaningful line
-        """
-
-        # -------------------------------------------------
+        # ---------------------------------------
         # Strategy 1
-        # Explicit aliases
-        # -------------------------------------------------
+        # Explicit vendor token
+        # ---------------------------------------
 
-        aliases = self.aliases("vendor")
+        for token in tokens:
 
-        for line in lines:
+            if token.label == "vendor":
 
-            if self.utils.contains_alias(line, aliases):
+                self.debug("Vendor", token.value)
 
-                value = self.after_colon(line)
+                return token.value
 
-                if value:
-
-                    self.debug("Vendor (Alias)", value)
-
-                    return value
-
-        # -------------------------------------------------
+        # ---------------------------------------
         # Strategy 2
-        # First meaningful line
-        # -------------------------------------------------
+        # First high-confidence text
+        # ---------------------------------------
 
-        ignore_words = [
+        ignore = {
 
-            "invoice",
-            "tax invoice",
-            "bill",
-            "date",
-            "gst",
+            "invoice_number",
+
+            "invoice_date",
+
             "subtotal",
-            "grand total",
-            "amount",
-            "quantity",
-            "qty",
-            "price",
-            "description"
 
-        ]
+            "grand_total",
 
-        for line in lines:
+            "gst",
 
-            line = line.strip()
+            "amount"
 
-            if line == "":
+        }
+
+        for token in tokens:
+
+            if token.label in ignore:
+
                 continue
 
-            lower = line.lower()
+            if len(token.value.strip()) < 3:
 
-            ignore = False
-
-            for word in ignore_words:
-
-                if word in lower:
-
-                    ignore = True
-                    break
-
-            if ignore:
                 continue
 
-            if len(line) < 3:
-                continue
+            self.debug("Vendor (Fallback)", token.value)
 
-            self.debug("Vendor (Fallback)", line)
-
-            return line
+            return token.value
 
         return ""

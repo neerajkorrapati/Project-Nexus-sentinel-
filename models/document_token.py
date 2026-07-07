@@ -5,36 +5,58 @@ Invoice Agent V3.5
 
 Document Token
 
-Represents one structured piece of information
-extracted from the OCR/document parser.
+A normalized representation of one piece of information
+found inside a document.
+
+Future ready for LayoutLM / Donut.
 
 ===========================================================
 """
 
+from dataclasses import dataclass, field
+from typing import Tuple, Optional
 
+
+@dataclass
 class DocumentToken:
 
-    def __init__(
+    # ----------------------------------------
+    # Semantic Information
+    # ----------------------------------------
 
-        self,
+    label: str = ""
 
-        label="",
+    value: str = ""
 
-        value="",
+    # ----------------------------------------
+    # Source Information
+    # ----------------------------------------
 
-        line_number=-1,
+    raw_text: str = ""
 
-        confidence=1.0
+    source: str = "OCR"
 
-    ):
+    page: int = 1
 
-        self.label = label
+    line_number: int = -1
 
-        self.value = value
+    # ----------------------------------------
+    # Layout Information
+    # ----------------------------------------
 
-        self.line_number = line_number
+    bbox: Optional[Tuple[int, int, int, int]] = None
 
-        self.confidence = confidence
+    # ----------------------------------------
+    # Confidence
+    # ----------------------------------------
+
+    confidence: float = 1.0
+
+    # ----------------------------------------
+    # Metadata
+    # ----------------------------------------
+
+    metadata: dict = field(default_factory=dict)
 
     def to_dict(self):
 
@@ -44,26 +66,34 @@ class DocumentToken:
 
             "value": self.value,
 
+            "raw_text": self.raw_text,
+
+            "source": self.source,
+
+            "page": self.page,
+
             "line_number": self.line_number,
 
-            "confidence": self.confidence
+            "bbox": self.bbox,
+
+            "confidence": self.confidence,
+
+            "metadata": self.metadata
 
         }
 
-    def __repr__(self):
+    def __str__(self):
 
         return (
 
-            f"DocumentToken("
+            f"[{self.label}] "
 
-            f"label='{self.label}', "
+            f"{self.value} "
 
-            f"value='{self.value}', "
+            f"(page={self.page}, "
 
             f"line={self.line_number}, "
 
-            f"confidence={self.confidence}"
+            f"confidence={self.confidence:.2f})"
 
-            f")"
-
-        )   
+        )

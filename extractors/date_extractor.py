@@ -1,13 +1,12 @@
 """
 ===========================================================
-Invoice Agent V3
 
-Date Extractor
+Invoice Agent V3.5
 
-Responsible only for extracting
-the invoice date.
+Invoice Number Extractor
 
-Author : Project Nexus
+Works on DocumentTokens
+
 ===========================================================
 """
 
@@ -16,84 +15,54 @@ import re
 from extractors.base_extractor import BaseExtractor
 
 
-class DateExtractor(BaseExtractor):
+class InvoiceNumberExtractor(BaseExtractor):
 
     def __init__(self):
 
         super().__init__()
 
-    def extract(self, lines):
+    def extract(self, tokens):
 
-        aliases = self.aliases("invoice_date")
-
-        # -------------------------------------------------
+        # ------------------------------------
         # Strategy 1
-        # Search using aliases
-        # -------------------------------------------------
+        # Exact invoice_number token
+        # ------------------------------------
 
-        for index, line in enumerate(lines):
+        for token in tokens:
 
-            if self.utils.contains_alias(line, aliases):
+            if token.label == "invoice_number":
 
-                # -----------------------------
-                # Invoice Date: 01/08/2017
-                # -----------------------------
+                self.debug("Invoice Number", token.value)
 
-                value = self.after_colon(line)
+                return token.value
 
-                if value:
-
-                    date = self.date(value)
-
-                    if date:
-
-                        self.debug("Invoice Date", date)
-
-                        return date
-
-                # -----------------------------
-                # Invoice Date
-                # 01/08/2017
-                # -----------------------------
-
-                next_line = self.utils.next_non_empty(lines, index)
-
-                if next_line:
-
-                    date = self.date(next_line)
-
-                    if date:
-
-                        self.debug("Invoice Date", date)
-
-                        return date
-
-        # -------------------------------------------------
+        # ------------------------------------
         # Strategy 2
         # Regex fallback
-        # -------------------------------------------------
+        # ------------------------------------
 
         patterns = [
 
-            r"\d{2}/\d{2}/\d{4}",
-            r"\d{2}-\d{2}-\d{4}",
-            r"\d{4}/\d{2}/\d{2}",
-            r"\d{4}-\d{2}-\d{2}"
+            r"[A-Za-z]{2,}[-/]\d+",
+
+            r"\d{4}-\d{2}/\d+",
+
+            r"[A-Za-z0-9/-]{6,}"
 
         ]
 
-        for line in lines:
+        for token in tokens:
 
             for pattern in patterns:
 
-                match = re.search(pattern, line)
+                match = re.search(pattern, token.value)
 
                 if match:
 
-                    date = match.group()
+                    value = match.group()
 
-                    self.debug("Invoice Date (Regex)", date)
+                    self.debug("Invoice Number (Regex)", value)
 
-                    return date
+                    return value
 
         return ""

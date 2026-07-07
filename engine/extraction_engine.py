@@ -1,30 +1,19 @@
 """
 ===========================================================
-Invoice Agent V3
+
+Invoice Agent V3.5
 
 Extraction Engine
 
-Author : Project Nexus
+Coordinates the complete extraction pipeline.
 
-This engine coordinates all extractors.
-
-Workflow
-
-Document
-    ↓
-OCR Normalizer
-    ↓
-VendorExtractor
-InvoiceNumberExtractor
-DateExtractor
-    ↓
-Invoice Object
 ===========================================================
 """
 
 from models.invoice import Invoice
 
 from normalizer.ocr_normalizer import OCRNormalizer
+from parser.document_parser import DocumentParser
 
 from extractors.vendor_extractor import VendorExtractor
 from extractors.invoice_number_extractor import InvoiceNumberExtractor
@@ -37,58 +26,44 @@ class ExtractionEngine:
 
         self.normalizer = OCRNormalizer()
 
-        self.vendor_extractor = VendorExtractor()
+        self.parser = DocumentParser()
 
-        self.invoice_number_extractor = InvoiceNumberExtractor()
+        self.vendor = VendorExtractor()
 
-        self.date_extractor = DateExtractor()
+        self.invoice_number = InvoiceNumberExtractor()
+
+        self.date = DateExtractor()
 
     def extract(self, document):
 
         print("\n========== EXTRACTION ENGINE ==========\n")
 
-        # ----------------------------------------
-        # Normalize OCR Text
-        # ----------------------------------------
+        # ------------------------------------
+        # OCR Normalization
+        # ------------------------------------
 
         clean_text = self.normalizer.normalize(
             document.raw_text
         )
 
-        lines = clean_text.split("\n")
+        # ------------------------------------
+        # Parse into DocumentTokens
+        # ------------------------------------
+
+        tokens = self.parser.parse(clean_text)
+
+        self.parser.print_tokens(tokens)
+
+        # ------------------------------------
+        # Build Invoice
+        # ------------------------------------
 
         invoice = Invoice()
 
-        # ----------------------------------------
-        # Run Individual Extractors
-        # ----------------------------------------
+        invoice.vendor = self.vendor.extract(tokens)
 
-        invoice.vendor = self.vendor_extractor.extract(lines)
+        invoice.invoice_number = self.invoice_number.extract(tokens)
 
-        invoice.invoice_number = (
-            self.invoice_number_extractor.extract(lines)
-        )
-
-        invoice.invoice_date = (
-            self.date_extractor.extract(lines)
-        )
-
-        # ----------------------------------------
-        # Debug
-        # ----------------------------------------
-
-        print("\n========== EXTRACTED ==========\n")
-
-        print(f"Vendor          : {invoice.vendor}")
-
-        print(f"Invoice Number  : {invoice.invoice_number}")
-
-        print(f"Invoice Date    : {invoice.invoice_date}")
-
-        print(f"Subtotal        : {invoice.subtotal}")
-
-        print(f"GST             : {invoice.gst}")
-
-        print(f"Grand Total     : {invoice.grand_total}")
+        invoice.invoice_date = self.date.extract(tokens)
 
         return invoice

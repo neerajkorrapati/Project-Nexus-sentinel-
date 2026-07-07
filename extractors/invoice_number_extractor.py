@@ -1,13 +1,12 @@
 """
 ===========================================================
-Invoice Agent V3
+
+Invoice Agent V3.5
 
 Invoice Number Extractor
 
-Responsible only for extracting
-the invoice number.
+Works on DocumentTokens
 
-Author : Project Nexus
 ===========================================================
 """
 
@@ -22,63 +21,41 @@ class InvoiceNumberExtractor(BaseExtractor):
 
         super().__init__()
 
-    def extract(self, lines):
+    def extract(self, tokens):
 
-        aliases = self.aliases("invoice_number")
-
-        # -------------------------------------------------
+        # ------------------------------------
         # Strategy 1
-        # Find line containing alias
-        # -------------------------------------------------
+        # Exact invoice_number token
+        # ------------------------------------
 
-        for index, line in enumerate(lines):
+        for token in tokens:
 
-            if self.utils.contains_alias(line, aliases):
+            if token.label == "invoice_number":
 
-                # -----------------------------
-                # Invoice Number: INV001
-                # -----------------------------
+                self.debug("Invoice Number", token.value)
 
-                value = self.after_colon(line)
+                return token.value
 
-                if value:
-
-                    self.debug("Invoice Number", value)
-
-                    return value
-
-                # -----------------------------
-                # Invoice Number
-                # INV001
-                # -----------------------------
-
-                next_line = self.utils.next_non_empty(lines, index)
-
-                if next_line:
-
-                    self.debug("Invoice Number", next_line)
-
-                    return next_line
-
-        # -------------------------------------------------
+        # ------------------------------------
         # Strategy 2
         # Regex fallback
-        # -------------------------------------------------
+        # ------------------------------------
 
         patterns = [
 
-            r"[A-Z]{2,}[-/]?\d+",
+            r"[A-Za-z]{2,}[-/]\d+",
+
             r"\d{4}-\d{2}/\d+",
-            r"\d+/\d+/\d+",
-            r"[A-Za-z0-9/-]{5,}"
+
+            r"[A-Za-z0-9/-]{6,}"
 
         ]
 
-        for line in lines:
+        for token in tokens:
 
             for pattern in patterns:
 
-                match = re.search(pattern, line)
+                match = re.search(pattern, token.value)
 
                 if match:
 
