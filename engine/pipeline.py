@@ -1,101 +1,77 @@
-import os
+"""
+===========================================================
+Project Nexus — Shared Execution Pipeline Gateway
 
+Core orchestration workflow engine feeding text structures 
+through decoupled, reusable system optimization utilities.
+===========================================================
+"""
+
+import os
 from engine.document_engine import DocumentEngine
 from engine.extraction_engine import ExtractionEngine
-# ValidationEngine is implemented below in this same file
+from engine.validation_engine import ValidationEngine
 from engine.decision_engine import DecisionEngine
+
+# Platform Shared Core Utility Integrations
+from engine.currency_engine import CurrencyEngine
+from engine.tax_engine import TaxEngine
 
 
 class InvoicePipeline:
 
     def __init__(self):
-
         self.document_engine = DocumentEngine()
-
         self.extraction_engine = ExtractionEngine()
-
         self.validation_engine = ValidationEngine()
-
         self.decision_engine = DecisionEngine()
+        
+        # Instantiate platform-shared utilities safely
+        self.currency_engine = CurrencyEngine()
+        self.tax_engine = TaxEngine()
 
     async def run(self, uploaded_file):
-
         os.makedirs("uploads", exist_ok=True)
-
-        file_location = os.path.join(
-            "uploads",
-            uploaded_file.filename
-        )
+        file_location = os.path.join("uploads", uploaded_file.filename)
 
         with open(file_location, "wb") as f:
             f.write(await uploaded_file.read())
 
-        print("\n========== RAW TEXT ==========\n")
-
+        # Step 1: Execute file parsing and read the text
         document = self.document_engine.process(file_location)
 
-        print("\n========== DOCUMENT ==========\n")
-
-        print("\n========================")
-        print("DOCUMENT")
-        print("========================")
-
-        print("Source :", document.source)
-        print("Pages  :", document.page_count)
-        print("Confidence :", document.confidence)
-
-        print("\n========================")
-        print("RAW TEXT")
-        print("========================")
-
-        print(document.raw_text)
-
+        # Step 2: Trigger the primary extraction engine layout sequence
         invoice = self.extraction_engine.extract(document)
 
-        validation = self.validation_engine.validate(invoice)
+        # Re-parse tokens to extract core system contextual intelligence
+        clean_text = self.extraction_engine.normalizer.normalize(document.raw_text)
+        tokens = self.extraction_engine.parser.parse(clean_text)
 
-        decision = self.decision_engine.decide(validation)
-
-        return {
-
-            "decision": decision,
-
-            "invoice": invoice.__dict__,
-
-            "validation": validation
-
+        # Step 3: Execute the shared platform Currency Engine
+        detected_iso = self.currency_engine.detect_currency(document.raw_text, fallback_country="IN")
+        invoice.currency = detected_iso
+        invoice.currency_meta = {
+            "iso_code": detected_iso,
+            "is_domestic_currency": (detected_iso == "INR")
         }
 
-class ValidationEngine:
+        # Step 4: Execute the shared platform Country Tax Engine rules
+        invoice.tax_breakdown = self.tax_engine.calculate_tax_breakdown(tokens, country_code="IN")
+        invoice.gst = self.tax_engine.aggregate_total_tax(invoice.tax_breakdown, invoice.gst)
 
-    def validate(self, invoice):
+        # Step 5: Execute global transaction validation checks
+        validation_report = self.validation_engine.validate(invoice)
 
-        errors = []
-
-        if invoice.vendor == "":
-            errors.append("Vendor missing")
-
-        if invoice.invoice_number == "":
-            errors.append("Invoice Number missing")
-
-        if invoice.subtotal == 0:
-            errors.append("Subtotal missing")
-
-        if invoice.gst == 0:
-            errors.append("GST missing")
-
-        if invoice.grand_total == 0:
-            errors.append("Grand Total missing")
-
-        expected = invoice.subtotal + invoice.gst
-
-        if abs(expected - invoice.grand_total) > 0.01:
-            errors.append("Total calculation incorrect")
+        # Step 6: Route automated approval results via the Decision Engine
+        decision = self.decision_engine.decide(validation_report)
 
         return {
-
-            "passed": len(errors) == 0,
-
-            "errors": errors
-
+            "platform_metadata": {
+                "suite_version": "5.0.0",
+                "ingestion_source": document.source,
+                "token_stream_count": len(tokens)
+            },
+            "decision": decision,
+            "invoice": invoice.__dict__,
+            "validation": validation_report
         }
