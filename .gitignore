@@ -1,0 +1,24 @@
+# Security / Secrets
+.env
+*.env
+.env.*
+
+# Python Virtual Environments
+venv/
+env/
+.venv/
+
+# Python Cache / Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE / Editor Folders (Optional but recommended)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
