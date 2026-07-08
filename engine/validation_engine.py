@@ -1,51 +1,40 @@
 """
 ===========================================================
-Project Nexus — Enterprise Validation Engine
+Project Nexus — Validation Engine
 
-Deterministic logic layer validating structural accounting balances,
-currency conformity, and configuration integrity rules.
+Performs mathematical cross-checks on the extracted data.
+Subtotal + GST == Grand Total
 ===========================================================
 """
-
-from models.invoice import Invoice
 
 
 class ValidationEngine:
 
-    def validate(self, invoice: Invoice) -> dict:
+    def validate(self, invoice_data: dict) -> dict:
         errors = []
+        
+        subtotal = float(invoice_data.get("subtotal", 0.0) or 0.0)
+        gst = float(invoice_data.get("gst", 0.0) or 0.0)
+        grand_total = float(invoice_data.get("grand_total", 0.0) or 0.0)
 
-        # Operational Check 1: Mandatory Field Affirmation
-        if not invoice.vendor or invoice.vendor.strip() == "":
-            errors.append("Vendor profile identity unverified or missing")
+        # Ensure essential totals are present
+        if subtotal <= 0:
+            errors.append("Subtotal missing or indicates a negative/zero balance.")
+        if grand_total <= 0:
+            errors.append("Grand Total valuation metric missing or invalid.")
 
-        if not invoice.invoice_number or invoice.invoice_number.strip() == "":
-            errors.append("Unique operational transaction identifier index missing")
+        # Financial Cross-Check (allowing a small rounding tolerance of 0.05)
+        calculated_total = round(subtotal + gst, 2)
+        actual_total = round(grand_total, 2)
 
-        # Operational Check 2: Absolute Financial Zero Defalcation Checks
-        if invoice.subtotal <= 0:
-            errors.append("Subtotal missing or indicates a negative/zero line statement balance")
-
-        if invoice.grand_total <= 0:
-            errors.append("Grand Total valuation metric missing or invalid")
-
-        # Operational Check 3: Dynamic Country Rules Equation Balance Validation
-        expected_grand_total = invoice.subtotal + invoice.gst
-        variance = abs(expected_grand_total - invoice.grand_total)
-
-        if variance > 0.02:  # Safe float variance boundary limits allowance
+        if abs(calculated_total - actual_total) > 0.05:
             errors.append(
-                f"Financial Calculation Mismatch: Calculated balance ({expected_grand_total:.2f}) "
-                f"does not balance with Grand Total entry ({invoice.grand_total:.2f})"
+                f"Financial Calculation Mismatch: Calculated balance ({calculated_total:.2f}) "
+                f"does not balance with Grand Total entry ({actual_total:.2f})."
             )
 
-        invoice.errors = errors
+        passed = len(errors) == 0
         return {
-            "passed": len(errors) == 0,
-            "errors": errors,
-            "audit_telemetry": {
-                "calculated_variance": variance,
-                "currency_verified": invoice.currency,
-                "active_tax_components": list(invoice.tax_breakdown.keys())
-            }
+            "passed": passed,
+            "errors": errors
         }

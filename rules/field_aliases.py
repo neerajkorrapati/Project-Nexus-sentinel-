@@ -1,89 +1,55 @@
 """
 ===========================================================
-Invoice Agent V4
-Field Alias Dictionary
+Project Nexus — Field Aliases Dictionary
 
-Maintains all recognized key phrases for structural field mapping.
+Maps standard internal schema keys to common OCR text variations
+found across Indian and international invoice formats.
 ===========================================================
 """
 
 FIELD_ALIASES = {
-    # --------------------------------------------------
-    # Vendor
-    # --------------------------------------------------
-    "vendor": [
-        "vendor",
-        "supplier",
-        "seller",
-        "company name",
-        "sold by",
-        "bill from",
-        "invoice from"
-    ],
-
-    # --------------------------------------------------
-    # Invoice Number
-    # --------------------------------------------------
-    "invoice_number": [
-        "invoice number",
-        "invoice no",
-        "invoice #",
-        "tax invoice no",
-        "document no",
-        "bill no",
-        "bill number",
-        "reference number"
-    ],
-
-    # --------------------------------------------------
-    # Invoice Date
-    # --------------------------------------------------
-    "invoice_date": [
-        "invoice date",
-        "bill date",
-        "date of issue",
-        "issue date",
-        "date"
-    ],
-
-    # --------------------------------------------------
-    # Subtotal
-    # --------------------------------------------------
     "subtotal": [
+        "total amount before tax",
+        "taxable value",
         "subtotal",
         "sub total",
-        "taxable amount",
-        "taxable value",
-        "basic amount",
-        "amount before tax",
-        "total amount before tax"
+        "net amount",
+        "assessable value",
+        "taxable amount"
     ],
-
-    # --------------------------------------------------
-    # GST
-    # --------------------------------------------------
     "gst": [
+        "add: c gst + s gst",
         "c gst + s gst",
+        "cgst + sgst",
         "s gst + c gst",
-        "add c gst",
-        "add s gst",
-        "tax amount",
-        "cgst",
-        "sgst",
+        "total tax amount",
+        "gst amount",
+        "total tax",
         "igst",
         "gst"
     ],
-
-    # --------------------------------------------------
-    # Grand Total
-    # --------------------------------------------------
     "grand_total": [
         "total amount after tax",
         "grand total",
+        "total invoice amount",
         "invoice total",
-        "amount payable",
-        "net amount",
         "net payable",
-        "invoice value"
+        "amount payable",
+        "total payable",
+        "total"
+    ],
+    "invoice_number": [
+        "invoice no",
+        "invoice number",
+        "inv no",
+        "bill no",
+        "document no"
+    ],
+    "invoice_date": [
+        "invoice date",
+        "date of supply",
+        "dated",
+        "bill date",
+        "date"
     ]
 }
