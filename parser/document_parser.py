@@ -1,13 +1,9 @@
 """
 ===========================================================
-Project Nexus — Enterprise Document Parser
-
-Generates a multi-candidate token stream using a Strict Line-Bound
-Slicing Engine to defeat layout fragmentation and spacing errors.
+Project Nexus Sentinel — Document Parser
 ===========================================================
 """
 
-import re
 from models.document_token import DocumentToken
 from parser.parser_utils import ParserUtils
 from rules.field_aliases import FIELD_ALIASES
@@ -24,95 +20,54 @@ class DocumentParser:
 
         tokens = []
         raw_lines = [self.utils.clean_line(l) for l in text.split("\n") if not self.utils.is_blank(l)]
-        
-        priority_queue = []
-        for label, aliases in FIELD_ALIASES.items():
-            for alias in aliases:
-                priority_queue.append((label, alias.lower()))
-        priority_queue.sort(key=lambda x: len(x[1]), reverse=True)
+        if not raw_lines:
+            return []
 
-        # Ignore metadata searches inside complex product tables to prevent header hijacking
-        table_headers = ["qty", "rate", "hsn", "description", "product", "discount", "vehicle", "s. no."]
-
-        for i, line in enumerate(raw_lines):
+        # Pass 1: Top-Down Header Scan
+        for i, line in enumerate(raw_lines[:15]):
             line_lower = line.lower()
             
-            if any(th in line_lower for th in table_headers):
+            if any(k in line_lower for k in FIELD_ALIASES["invoice_date"]):
+                dt = self.utils.extract_date(line)
+                if not dt and i + 1 < len(raw_lines):
+                    dt = self.utils.extract_date(raw_lines[i + 1])
+                if dt:
+                    tokens.append(DocumentToken("invoice_date", dt, line, i, 1.0))
+
+            if any(k in line_lower for k in FIELD_ALIASES["invoice_number"]):
+                inv = self.utils.extract_invoice_number(line)
+                if not inv and i + 1 < len(raw_lines):
+                    inv = self.utils.extract_invoice_number(raw_lines[i + 1])
+                if inv:
+                    tokens.append(DocumentToken("invoice_number", inv, line, i, 1.0))
+
+            if len(line) >= 3 and not self.utils.is_numeric(line):
+                tokens.append(DocumentToken("raw_text_block", line, line, i, 0.50))
+
+        # Pass 2: Bottom-Up Totals Scan
+        reverse_lines = raw_lines[::-1]
+        for idx, line in enumerate(reverse_lines):
+            line_lower = line.lower()
+
+            # Ignore product tables to prevent "Subtotal" collisions
+            if any(k in line_lower for k in ["hsn", "qty", "rate", "description", "unit price"]):
                 continue
 
-            matched_labels = set()
+            search_window = " ".join(reverse_lines[max(0, idx - 1): min(len(reverse_lines), idx + 3)])
 
-            for label, alias in priority_queue:
-                if label in matched_labels:
-                    continue
+            if any(k in line_lower for k in FIELD_ALIASES["grand_total"]):
+                amounts = self.utils.extract_valid_amounts(search_window)
+                if amounts:
+                    tokens.append(DocumentToken("grand_total", str(max(amounts)), line, 0, 1.0))
 
-                # Strict boundary check (letters/numbers cannot surround the alias - protects 'gst' from 'gstin')
-                pattern = rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])"
-                match = re.search(pattern, line_lower)
-                
-                if match:
-                    final_value = None
-                    
-                    # Slice text exactly AFTER the keyword to prevent grabbing numbers that came before it
-                    post_text = line[match.end():]
+            if any(k in line_lower for k in FIELD_ALIASES["gst"]):
+                amounts = self.utils.extract_valid_amounts(search_window)
+                if amounts:
+                    tokens.append(DocumentToken("gst", str(amounts[0]), line, 0, 1.0))
 
-                    if label in ["subtotal", "gst", "grand_total"]:
-                        # 1. Check the exact same line downstream
-                        amounts = self.utils.extract_valid_amounts(post_text)
-                        
-                        # 2. Fallback: Check the entire line
-                        if not amounts:
-                            amounts = self.utils.extract_valid_amounts(line)
-                            
-                        # 3. Fallback: Check the next line (max 1 line lookahead to prevent bleed)
-                        if not amounts and i + 1 < len(raw_lines):
-                            amounts = self.utils.extract_valid_amounts(raw_lines[i+1])
-                            
-                        if amounts:
-                            # Grab the FIRST valid amount in the downstream text sequence
-                            final_value = amounts[0]
-                            
-                    elif label == "invoice_date":
-                        final_value = self.utils.extract_date(post_text)
-                        if not final_value:
-                            final_value = self.utils.extract_date(line)
-                        if not final_value and i + 1 < len(raw_lines):
-                            final_value = self.utils.extract_date(raw_lines[i+1])
-                            
-                    elif label == "invoice_number":
-                        final_value = self.utils.extract_invoice_number(post_text)
-                        if not final_value:
-                            final_value = self.utils.extract_invoice_number(line)
-                        if not final_value and i + 1 < len(raw_lines):
-                            final_value = self.utils.extract_invoice_number(raw_lines[i+1])
-                            
-                    else:
-                        final_value = line.replace(":", "").replace("|", "").strip()
-
-                    if final_value:
-                        tokens.append(DocumentToken(
-                            label=label,
-                            value=str(final_value),
-                            raw_text=line,
-                            line_number=i,
-                            confidence=1.0
-                        ))
-                        matched_labels.add(label)
-
-        # Pass 2: Contextual Line Tracking for Header Vendor Identification
-        for i, line in enumerate(raw_lines):
-            if len(line) >= 3 and not self.utils.is_numeric(line):
-                tokens.append(DocumentToken(
-                    label="raw_text_block",
-                    value=line,
-                    raw_text=line,
-                    line_number=i,
-                    confidence=0.50
-                ))
+            if any(k in line_lower for k in FIELD_ALIASES["subtotal"]):
+                amounts = self.utils.extract_valid_amounts(search_window)
+                if amounts:
+                    tokens.append(DocumentToken("subtotal", str(amounts[0]), line, 0, 1.0))
 
         return tokens
-
-    def print_tokens(self, tokens):
-        print("\n========== DOCUMENT TOKENS ==========\n")
-        for token in tokens:
-            print(token)

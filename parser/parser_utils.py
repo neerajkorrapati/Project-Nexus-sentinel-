@@ -1,9 +1,6 @@
 """
 ===========================================================
-Project Nexus — Parser Utilities
-
-Production-grade extraction helpers built for high-accuracy 
-financial parsing. Immune to dates, percentages, and serials.
+Project Nexus Sentinel — Parser Utilities
 ===========================================================
 """
 
@@ -26,38 +23,33 @@ class ParserUtils:
 
     @staticmethod
     def extract_valid_amounts(text_block: str) -> list:
-        """
-        Extracts all valid financial amounts in a text window,
-        actively filtering out percentages, dates, and layout serials.
-        """
         if not text_block:
             return []
-            
-        # Actively destroy percentages so they are never parsed as financial amounts
-        clean = re.sub(r"\b\d+(?:\.\d+)?\s*%", " ", text_block)
-        clean = re.sub(r"\(\s*\d+(?:\.\d+)?\s*%\s*\)", " ", clean)
+
+        # Destroy percentages so tax rates are never parsed as monetary amounts
+        clean = re.sub(r"\(?\[?\b\d+(?:\.\d+)?\s*%\)?\]?", " ", text_block)
         
-        # Clean currency symbols and structural table noise
+        # Destroy currency symbols and table row barriers
         clean = clean.replace("₹", " ").replace("$", " ").replace("Rs.", " ").replace("rs.", " ")
-        clean = clean.replace("|", " ").replace(":", " ").replace(",", "")
-        
-        # Locate all structural number blocks
-        matches = re.findall(r"\b\d+(?:\.\d{1,2})?\b", clean)
-        
-        valid_amounts = []
+        clean = clean.replace("|", " ").replace(":", " ")
+
+        matches = re.findall(r"\b\d+(?:,\d{3})*(?:\.\d{2})?\b", clean)
+        amounts = []
+
         for m in matches:
+            val_str = m.replace(",", "")
             try:
-                val = float(m)
-                # Ignore standard calendar years (e.g., 2017, 2026)
-                if 1900 <= val <= 2099 and "." not in m:
+                val = float(val_str)
+                # Ignore calendar years unless formatted explicitly as money
+                if 1900 <= val <= 2099 and "." not in val_str:
                     continue
-                # Accept float decimals or values >= 10 (ignores 1, 2 table indexes)
-                if "." in m or val >= 10.0:
-                    valid_amounts.append(val)
+                # Ignore table serial lines (1, 2, 3)
+                if val >= 10.0 or "." in val_str:
+                    amounts.append(val)
             except ValueError:
                 continue
-                
-        return valid_amounts
+
+        return amounts
 
     @staticmethod
     def extract_date(text_block: str):
@@ -80,7 +72,7 @@ class ParserUtils:
             r"\b[A-Za-z0-9]+[-/]\d+[-/]\d+\b",
             r"\b[A-Za-z0-9]+[-/]\d+\b",
             r"\b\d{4}-\d{2}/\d+\b",
-            r"\b[A-Za-z0-9]{3,15}\b"
+            r"\b[A-Za-z0-9]{4,15}\b"
         ]
         for pattern in patterns:
             match = re.search(pattern, text_block)

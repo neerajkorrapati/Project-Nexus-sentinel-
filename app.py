@@ -3,25 +3,27 @@ import pdfplumber
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File
 
-# Load environment variables FIRST before instantiating pipeline engines
+# MUST BE CALLED FIRST to load API Keys into os.environ
 load_dotenv()
 
 from pipeline.invoice_pipeline import InvoicePipeline
 
-app = FastAPI(title="Project Nexus — Invoice Processing API")
+app = FastAPI(title="Project Nexus Sentinel — Enterprise Invoice API")
 pipeline = InvoicePipeline()
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
-    Safely reads PDF bytes in memory and extracts text layer page by page.
+    Reads PDF bytes with explicit layout preservation to prevent 
+    column boundary collapsing during OCR parsing.
     """
     text = ""
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         for page in pdf.pages:
-            extracted = page.extract_text()
-            if extracted:
-                text += extracted + "\n"
+            extracted = page.extract_text(layout=True)
+            if not extracted or not extracted.strip():
+                extracted = page.extract_text(layout=False) or ""
+            text += extracted + "\n"
     return text
 
 

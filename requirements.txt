@@ -11,3 +11,9 @@ pytesseract
 Pillow
 
 pdfplumber
+fastapi
+uvicorn
+pdfplumber
+python-dotenv
+google-genai
+pydantic
