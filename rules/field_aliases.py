@@ -1,13 +1,37 @@
 """
 ===========================================================
-Project Nexus — Field Aliases Dictionary
+Project Nexus - Field Alias Dictionary
 
-Maps standard internal schema keys to common OCR text variations
-found across Indian and international invoice formats.
+Aliases describe document language only. They do not perform extraction.
+Extractors decide how to interpret nearby tokens.
 ===========================================================
 """
 
 FIELD_ALIASES = {
+    "vendor": [
+        "supplier",
+        "seller",
+        "vendor",
+        "from",
+    ],
+    "invoice_number": [
+        "invoice no",
+        "invoice number",
+        "invoice #",
+        "inv no",
+        "inv number",
+        "bill no",
+        "document no",
+        "tax invoice no",
+    ],
+    "invoice_date": [
+        "invoice date",
+        "date of invoice",
+        "date of supply",
+        "bill date",
+        "dated",
+        "date",
+    ],
     "subtotal": [
         "total amount before tax",
         "taxable value",
@@ -15,7 +39,8 @@ FIELD_ALIASES = {
         "sub total",
         "net amount",
         "assessable value",
-        "taxable amount"
+        "taxable amount",
+        "amount before tax",
     ],
     "gst": [
         "add: c gst + s gst",
@@ -25,8 +50,10 @@ FIELD_ALIASES = {
         "total tax amount",
         "gst amount",
         "total tax",
+        "cgst",
+        "sgst",
         "igst",
-        "gst"
+        "gst",
     ],
     "grand_total": [
         "total amount after tax",
@@ -36,20 +63,18 @@ FIELD_ALIASES = {
         "net payable",
         "amount payable",
         "total payable",
-        "total"
+        "balance due",
+        "amount due",
+        "total",
     ],
-    "invoice_number": [
-        "invoice no",
-        "invoice number",
-        "inv no",
-        "bill no",
-        "document no"
+    "currency": [
+        "currency",
+        "inr",
+        "usd",
+        "eur",
+        "aed",
+        "sgd",
+        "rs.",
+        "rs",
     ],
-    "invoice_date": [
-        "invoice date",
-        "date of supply",
-        "dated",
-        "bill date",
-        "date"
-    ]
 }

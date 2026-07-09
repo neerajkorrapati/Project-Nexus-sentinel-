@@ -1,46 +1,41 @@
 """
 ===========================================================
-Invoice Agent V4
-
-Invoice Number Extractor
-
-Extracts canonical numbers using confidence prioritization layers.
+Invoice Agent V4 - Invoice Number Extractor
 ===========================================================
 """
 
-import re
 from extractors.base_extractor import BaseExtractor
 
 
 class InvoiceNumberExtractor(BaseExtractor):
 
-    def __init__(self):
-        super().__init__()
-
     def extract(self, tokens):
-        # Strict internal regex evaluation expressions to safeguard extraction rules
-        validation_patterns = [
-            r"[A-Za-z0-9]+[-/]\d+[-/][A-Za-z0-9]+",
-            r"[A-Za-z0-9]+[-/]\d+",
-            r"\d{4}-\d{2}/\d+"
-        ]
+        for alias in self.alias_tokens(tokens, "invoice_number"):
+            same_line = self.tokens_on_line(tokens, "identifier", alias.line_number)
+            next_line = self.tokens_on_line(tokens, "identifier", alias.line_number + 1)
+            candidates = same_line or next_line
+            if candidates:
+                value = candidates[0].value
+                self.debug("Invoice Number", value)
+                return value
 
-        # Heuristic 1: Prioritize explicit keyword token extractions (Confidence 1.0)
-        for token in tokens:
-            if token.label == "invoice_number" and token.confidence == 1.0:
-                for pattern in validation_patterns:
-                    match = re.search(pattern, token.value)
-                    if match:
-                        self.debug("Invoice Number (Explicit Anchor)", match.group())
-                        return match.group()
-                
-                self.debug("Invoice Number (Explicit Anchor Fallback)", token.value)
-                return token.value
+            line = self.line_text(tokens, alias.line_number)
+            value = self._value_after_alias(line)
+            if value:
+                self.debug("Invoice Number", value)
+                return value
 
-        # Heuristic 2: Fall back to raw pattern regex evaluations (Confidence 0.80)
-        for token in tokens:
-            if token.label == "invoice_number" and token.confidence == 0.80:
-                self.debug("Invoice Number (Pattern Fallback)", token.value)
-                return token.value
+        identifiers = self.tokens_by_label(tokens, "identifier")
+        if identifiers:
+            value = identifiers[0].value
+            self.debug("Invoice Number Fallback", value)
+            return value
 
+        return "UNKNOWN"
+
+    def _value_after_alias(self, line: str) -> str:
+        if ":" in line:
+            value = line.split(":", 1)[1].strip()
+            if value:
+                return value.split()[0]
         return ""

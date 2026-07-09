@@ -11,6 +11,9 @@ Subtotal + GST == Grand Total
 class ValidationEngine:
 
     def validate(self, invoice_data: dict) -> dict:
+        if not isinstance(invoice_data, dict):
+            invoice_data = invoice_data.__dict__
+
         errors = []
         
         subtotal = float(invoice_data.get("subtotal", 0.0) or 0.0)

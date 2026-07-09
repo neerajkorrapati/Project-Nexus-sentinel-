@@ -1,6 +1,8 @@
 """
 ===========================================================
-Project Nexus Sentinel — Document Parser
+Project Nexus Sentinel - Document Parser
+
+Produces neutral document tokens. Business decisions belong to extractors.
 ===========================================================
 """
 
@@ -19,55 +21,90 @@ class DocumentParser:
             return []
 
         tokens = []
-        raw_lines = [self.utils.clean_line(l) for l in text.split("\n") if not self.utils.is_blank(l)]
-        if not raw_lines:
+        pages = self.utils.split_pages(text)
+        if not pages:
             return []
 
-        # Pass 1: Top-Down Header Scan
-        for i, line in enumerate(raw_lines[:15]):
-            line_lower = line.lower()
-            
-            if any(k in line_lower for k in FIELD_ALIASES["invoice_date"]):
-                dt = self.utils.extract_date(line)
-                if not dt and i + 1 < len(raw_lines):
-                    dt = self.utils.extract_date(raw_lines[i + 1])
-                if dt:
-                    tokens.append(DocumentToken("invoice_date", dt, line, i, 1.0))
+        global_line_number = 0
 
-            if any(k in line_lower for k in FIELD_ALIASES["invoice_number"]):
-                inv = self.utils.extract_invoice_number(line)
-                if not inv and i + 1 < len(raw_lines):
-                    inv = self.utils.extract_invoice_number(raw_lines[i + 1])
-                if inv:
-                    tokens.append(DocumentToken("invoice_number", inv, line, i, 1.0))
+        for page_index, lines in enumerate(pages, start=1):
+            for page_line_number, line in enumerate(lines, start=1):
+                global_line_number += 1
+                tokens.append(
+                    DocumentToken(
+                        label="line",
+                        value=line,
+                        raw_text=line,
+                        line_number=global_line_number,
+                        confidence=1.0,
+                        page_number=page_index,
+                        metadata={"page_line_number": page_line_number},
+                    )
+                )
 
-            if len(line) >= 3 and not self.utils.is_numeric(line):
-                tokens.append(DocumentToken("raw_text_block", line, line, i, 0.50))
+                for field_name in self.utils.matching_fields(line, FIELD_ALIASES):
+                    tokens.append(
+                        DocumentToken(
+                            label="field_alias",
+                            value=field_name,
+                            raw_text=line,
+                            line_number=global_line_number,
+                            confidence=0.92,
+                            page_number=page_index,
+                            field_name=field_name,
+                        )
+                    )
 
-        # Pass 2: Bottom-Up Totals Scan
-        reverse_lines = raw_lines[::-1]
-        for idx, line in enumerate(reverse_lines):
-            line_lower = line.lower()
+                for amount in self.utils.extract_amounts(line):
+                    tokens.append(
+                        DocumentToken(
+                            label="amount",
+                            value=amount,
+                            raw_text=line,
+                            line_number=global_line_number,
+                            confidence=0.90,
+                            page_number=page_index,
+                        )
+                    )
 
-            # Ignore product tables to prevent "Subtotal" collisions
-            if any(k in line_lower for k in ["hsn", "qty", "rate", "description", "unit price"]):
-                continue
+                for date_value in self.utils.extract_dates(line):
+                    tokens.append(
+                        DocumentToken(
+                            label="date",
+                            value=date_value,
+                            raw_text=line,
+                            line_number=global_line_number,
+                            confidence=0.90,
+                            page_number=page_index,
+                        )
+                    )
 
-            search_window = " ".join(reverse_lines[max(0, idx - 1): min(len(reverse_lines), idx + 3)])
+                for identifier in self.utils.extract_identifier_candidates(line):
+                    tokens.append(
+                        DocumentToken(
+                            label="identifier",
+                            value=identifier,
+                            raw_text=line,
+                            line_number=global_line_number,
+                            confidence=0.78,
+                            page_number=page_index,
+                        )
+                    )
 
-            if any(k in line_lower for k in FIELD_ALIASES["grand_total"]):
-                amounts = self.utils.extract_valid_amounts(search_window)
-                if amounts:
-                    tokens.append(DocumentToken("grand_total", str(max(amounts)), line, 0, 1.0))
-
-            if any(k in line_lower for k in FIELD_ALIASES["gst"]):
-                amounts = self.utils.extract_valid_amounts(search_window)
-                if amounts:
-                    tokens.append(DocumentToken("gst", str(amounts[0]), line, 0, 1.0))
-
-            if any(k in line_lower for k in FIELD_ALIASES["subtotal"]):
-                amounts = self.utils.extract_valid_amounts(search_window)
-                if amounts:
-                    tokens.append(DocumentToken("subtotal", str(amounts[0]), line, 0, 1.0))
+                for currency in self.utils.detect_currency_codes(line):
+                    tokens.append(
+                        DocumentToken(
+                            label="currency",
+                            value=currency,
+                            raw_text=line,
+                            line_number=global_line_number,
+                            confidence=0.88,
+                            page_number=page_index,
+                        )
+                    )
 
         return tokens
+
+    def print_tokens(self, tokens):
+        for token in tokens:
+            print(token)

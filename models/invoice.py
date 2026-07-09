@@ -11,6 +11,8 @@ class Invoice:
 
     invoice_date: str = ""
 
+    currency: str = "INR"
+
     subtotal: float = 0.0
 
     gst: float = 0.0
